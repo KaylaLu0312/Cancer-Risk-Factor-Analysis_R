@@ -1,0 +1,375 @@
+---
+title: "Cancer Risk Factors Analysis"
+author: "Kayla Lu"
+date: "2026-03-17"
+output: html_document
+---
+
+# Introduction
+Cancer risk is influenced by a range of factors, including genetics, lifestyle, and medical history. Understanding how these factors relate to cancer risk can help improve prevention and early detection strategies.
+
+In this analysis, we explore several potential risk factors such as family history, diet, and infections. The aim is to examine how these variables are associated with different levels of cancer risk using data visualization and exploratory data analysis.
+
+# Data Preparation
+```{r setup, message=FALSE, warning=FALSE}
+# Load required packages
+library(tidyverse)
+library(ggplot2)
+
+# Read dataset
+cancer_data <- read_csv("cancer-risk-factors.csv")
+```
+
+## Data Inspection
+```{r}
+head(cancer_data)
+str(cancer_data)
+summary(cancer_data)
+table(cancer_data$Cancer_Type)
+table(cancer_data$Risk_Level)
+colSums(is.na(cancer_data))
+```
+
+## Data Cleaning
+```{r}
+cancer_data <- cancer_data %>%
+  mutate(
+    Cancer_Type = factor(Cancer_Type),
+    Gender = factor(Gender),
+    Family_History = factor(Family_History),
+    BRCA_Mutation = factor(BRCA_Mutation),
+    H_Pylori_Infection = factor(H_Pylori_Infection),
+    Risk_Level = factor(
+      Risk_Level,
+      levels = c("Low", "Medium", "High"),
+    ordered = TRUE
+  )
+)
+
+str(cancer_data)
+num_vars <- cancer_data %>%
+  select(where(is.numeric))
+colnames(num_vars)
+summary(num_vars)
+
+cat_vars <- cancer_data %>%
+  select(where(is.factor))
+colnames(cat_vars)
+```
+
+
+# Data Visualisations and Analysis
+## Sample Overview
+### Age
+```{r}
+ggplot(cancer_data, aes(x = Age)) +
+  geom_histogram(fill = "skyblue", color = "white") +
+  labs(title = "Age Distribution",
+       x = "Age", y = "Count") +
+  theme_minimal()
+```
+
+Most participants are aged 50 to 80, reflecting a concentration in the older age brackets
+
+### Gender
+```{r}
+ggplot(cancer_data, aes(x = factor(Gender, levels = c(0,1), labels = c("Female","Male")))) +
+  geom_bar(fill = "skyblue") +
+  geom_text(aes(label = after_stat(count)), 
+            stat = "count",
+            vjust = -0.3) +
+  labs(title = "Gender Distribution",
+       x = "Gender", y = "Count") +
+  theme_minimal()
+```
+
+Gender distribution is roughly equal, with slightly more females than males.
+
+### BMI
+```{r}
+ggplot(cancer_data, aes(x = BMI)) +
+  geom_histogram(fill = "skyblue", color = "white") +
+  labs(title = "BMI Distribution",
+       x = "BMI", y = "Count") +
+  theme_minimal()
+```
+
+The BMI distribution is bell-shaped and centered at 27, placing the average slightly above the standard healthy range according to WHO/CDC guidelines.
+
+### Cancer Type Distribution
+```{r}
+ggplot(cancer_data, aes(x = Cancer_Type)) +
+  geom_bar(fill = "skyblue") +
+  geom_text(aes(label = after_stat(count)), 
+            stat = "count",
+            vjust = -0.3) +
+  labs(title = "Cancer Type Distribution",
+       x = "Cancer Type", y = "Count") +
+  theme_minimal()
+```
+
+While lung cancer remains the most frequent diagnosis in this dataset, followed closely by breast and colon cancer, prostate and skin cancers occur with notably lower frequency
+
+### Risk Level Distribution
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level)) +
+  geom_bar(fill = "skyblue") +
+  geom_text(aes(label = after_stat(count)), 
+            stat = "count",
+            vjust = -0.3) +
+  labs(title = "Risk Level Distribition",
+       x = "Risk Level", y = "Count") +
+  theme_minimal()
+```
+
+Over two-thirds of the cohort are medium-risk, significantly outnumbering the low-risk (~300) and high-risk (~100) groups.
+
+
+## Core Analysis(Relationships with Cancer)
+## Define colors
+```{r}
+risk_colors <- c(
+  "Low" = "lightgreen",
+  "Medium" = "khaki",
+  "High" = "lightcoral"
+)
+scale_fill_manual(values = risk_colors)
+```
+
+## Demographic Factors
+### Age vs Risk Level
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, y = Age, fill = Risk_Level)) +
+  geom_boxplot() +
+  scale_fill_manual(values = risk_colors) +
+  labs(title = "Age by Risk Level",
+       x = "Risk Level", y = "Age") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+There is no significant variation in age across risk groups with a stable median of approximately 64 years.
+
+### Age vs Cancer Type
+```{r}
+ggplot(cancer_data, aes(x = Cancer_Type, y = Age)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Age by Cancer Type",
+         x = "Cancer Types", y = "Age") +
+  theme_minimal()
+```
+
+Prostate cancer patients are notably older (median ~73) than those with other cancer types (median ~62). The age profiles for breast, colon, lung, and skin cancers remain largely identical.
+
+### Gender vs Risk Level
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, fill = factor(Gender, levels = c(0,1), labels = c("Female", "Male")))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Gender by Risk Level",
+       x = "Risk Level", y = "Count",
+       fill = "Gender") +
+  theme_minimal() 
+```
+
+There is no significant gender difference in risk levels; both males and females show a similar distribution.
+
+### Gender vs Cancer Type
+```{r}
+ggplot(cancer_data, aes(x = Cancer_Type, fill = factor(Gender, levels = c(0,1), labels = c("Female", "Male")))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Gender by Cancer Type",
+       x = "Cancer Types", y = "Count",
+      fill = "Gender") +
+  theme_minimal()
+```
+
+Breast and prostate cancer are sex-specific, as expected. For lung, colon, and skin cancer, the numbers for males are slightly higher than for females.
+
+
+## Lifestyle Factors
+### Smoking vs Cancer Type
+```{r}
+ggplot(cancer_data, aes(x = Cancer_Type, y = Smoking)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Smoking Level by Cancer Type",
+       x = "Cancer Type", y = "Smoking Level") +
+  theme_minimal()
+```
+
+Lung cancer is uniquely tied to high smoking levels (median 10), while all other cancer types show a much lower median smoking level (~4) with broader variation.
+
+### Smoking vs Risk Level
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, y = Smoking, fill = Risk_Level)) +
+  geom_boxplot() +
+  scale_fill_manual(values = risk_colors) +
+  labs(title = "Smoking by Risk Level",
+       x = "Risk Level", y = "Smoking") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Smoking level is strongly associated with risk, with the median increasing from 2 in the low-risk group to 8.5 in the high-risk group.
+
+### Alcohol vs Risk Level
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, y = Alcohol_Use, fill = Risk_Level)) +
+  geom_boxplot() +
+  scale_fill_manual(values = risk_colors) +
+  labs(title = "Alcohol use by Risk Level",
+       x = "Risk Level", y = "Alcohol Use") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Risk levels scale positively with alcohol use. The median score jumps from a 2 in the low-risk group all the way up to an 8 for high-risk.
+
+### Physical Activity Level by Risk Level
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, y = Physical_Activity_Level, fill = Risk_Level)) +
+  geom_boxplot() +
+  scale_fill_manual(values = risk_colors) +
+  labs(title = "Physical Activity Level by Risk Level",
+       x = "Risk Level", y = "Physical Activity Level") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Activity levels remain consistent across all risk groups, with a uniform median of 5.0.
+
+### Red Meat Consumption by Risk Level
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, y = Diet_Red_Meat, fill = Risk_Level)) +
+  geom_boxplot() +
+  scale_fill_manual(values = risk_colors) +
+  labs(title = "Red Meat Consumption by Risk Level",
+       x = "Risk Level", y = "Red Meat Consumption") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Red meat consumption is positively correlated with risk levels. The median consumption score doubles from 4 in the low-risk group to 8 in the high-risk group.
+
+### Salted/Processed Food Consumption by Risk Level
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, y = Diet_Salted_Processed, fill = Risk_Level)) +
+  geom_boxplot() +
+  scale_fill_manual(values = risk_colors) +
+  labs(title = "Salted/Processed Food Consumption by Risk Level",
+       x = "Risk Level", y = "Salted/Processed Food Consumption") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+There is a strong association between salted/processed food intake and risk level. The median score quadruples from 2.0 in the low-risk group to 8.0 in the high-risk group.
+
+### BMI by Risk Level
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, y = BMI, fill = Risk_Level)) +
+  geom_boxplot() +
+  scale_fill_manual(values = risk_colors) +
+  labs(title = "BMI by Risk Level",
+       x = "Risk Level", y = "BMI") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+BMI shows no significant variation across risk levels, with a median BMI of approximately 26.5 for all groups.
+
+
+## Environmental Factors
+### Air pollution
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, y = Air_Pollution, fill = Risk_Level)) +
+  geom_boxplot() +
+  scale_fill_manual(values = risk_colors) +
+  labs(title = "Air Pollution Risk Level",
+       x = "Risk Level", y = "Air Pollution Level") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Air pollution exposure is strongly associated with elevated risk levels. The median pollution score triples from 3.0 in the low-risk group to 9.0 in the high-risk group.
+
+### Occupational hazard
+```{r}
+ggplot(cancer_data, aes(x = Risk_Level, y = Occupational_Hazards, fill = Risk_Level)) +
+  geom_boxplot() +
+  scale_fill_manual(values = risk_colors) +
+  labs(title = "Occupational Hazards by Risk Level",
+       x = "Risk Level", y = "Occupational Hazards") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Occupational hazards are strongly linked to elevated risk levels as well. The median exposure score increases progressively from 3.0 for low-risk individuals to 7.0 for the high-risk group,
+
+
+## Genetic/Medical Factors
+### BRCA_Mutation
+```{r}
+BRCA_percentage <- cancer_data %>%
+  count(Risk_Level, BRCA_Mutation) %>%
+  group_by(Risk_Level) %>%
+  mutate(percentage = n / sum(n)* 100)
+
+ggplot(BRCA_percentage, aes(x = Risk_Level, y = percentage, fill = factor(BRCA_Mutation, levels = c(0,1), labels = c("No","Yes")))) +
+  geom_col() +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")),
+            position = position_stack(vjust = 0.5), size = 3) +
+  scale_fill_manual(values = c("No" = "lightgreen", "Yes" = "lightcoral")) +
+  labs(title = "Percentage of BRCA Mutation by Risk Level",
+       x = "Risk Level", y = "Percentage",
+       fill = "BRCA_Mutation") +
+  theme_minimal()
+```
+
+BRCA mutation shows a slight upward trend with risk levels. While the overall rates are low, the high-risk group has the highest prevalence at 4.9%, slightly outstripping the other categories.
+
+### Family_History
+```{r}
+Family_History_percentage <- cancer_data %>%
+  count(Risk_Level, Family_History) %>%
+  group_by(Risk_Level) %>%
+  mutate(percentage = n / sum(n)* 100)
+
+ggplot(Family_History_percentage, aes(x = Risk_Level, y = percentage, fill = factor(Family_History, levels = c(0,1), labels = c("No", "Yes")))) +
+  geom_col() +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")),
+            position = position_stack(vjust = 0.5), size = 3) +
+  scale_fill_manual(values = c("No" = "lightgreen", "Yes" = "lightcoral")) +
+  labs(title = "Percentage of Family History by Risk Level",
+       x = "Risk Level", y = "Percentage",
+       fill = "Family History") +
+  theme_minimal()
+```
+
+The percentage of family history is noticeably higher in the medium and high-risk groups (around 20.5%) compared to the low-risk group (13.9%).
+
+### H_Pylori_Infection
+```{r}
+H_Pylori_percentage <- cancer_data %>%
+  count(Risk_Level, H_Pylori_Infection) %>%
+  group_by(Risk_Level) %>%
+  mutate(percentage = n / sum(n)*100)
+
+ggplot(H_Pylori_percentage, aes(x = Risk_Level, y = percentage, fill = factor(H_Pylori_Infection, levels = c(0,1), labels = c("No", "Yes")))) +
+  geom_col() +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")), 
+            position = position_stack(vjust = 0.5), size = 3) +
+  scale_fill_manual(values = c("No" = "lightgreen", "Yes" = "lightcoral")) +
+  labs(title = "Percentage of H. Pylori Infection by Risk Level",
+       x = "Risk Level", y = "Percentage",
+       fill = "H. Pylori") +
+  theme_minimal()
+```
+
+H. pylori infection rates scale positively with risk levels, moving from 17.6% in the low-risk category to 24.5% in the high-risk category.
+
+
+# Conclusion
+This analysis explored demographic, lifestyle, environmental, and genetic factors associated with cancer risk.
+
+The results suggest that **lifestyle habits**—specifically smoking, alcohol consumption, and diets high in red meat and processed foods—are the primary drivers of high-risk classification. Additionally, there is a strong positive relationship between risk levels and **environmental exposures** such as air pollution and occupational hazards. In contrast, baseline physiological metrics—including age, gender, BMI, and physical activity—show no significant variation across risk levels, while **hereditary and medical factors** like BRCA mutations, family history, and H. pylori infection remain only secondary indicators.
+
+Overall, these findings highlight that **behavioral** and **environmental factors** are the main drivers of risk, while baseline demographics have minimal impact.
