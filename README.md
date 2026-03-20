@@ -15,4 +15,4 @@ A data analysis project examining factors associated with cancer risk using R.
 
 ## Report
 See the full analysis here:
-[Cancer Risk Report]
+[Cancer Risk Report](https://kaylalu0312.github.io/Cancer-Risk-Factor-Analysis_R/Cancer-Risk-Factors.html)
